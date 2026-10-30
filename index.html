@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Apple of Fortune</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{min-height:100%;background:#031512}
+body{
+  min-height:100vh;
+  padding:12px 10px calc(24px + env(safe-area-inset-bottom));
+  color:#fff;
+  font-family:Arial,Tahoma,sans-serif;
+  overflow-x:hidden;
+  background:linear-gradient(rgba(0,18,14,0.45),rgba(0,18,14,0.75)),
+             url('bg.jpg.jpg') center top/cover no-repeat,
+             url('bg.jpg') center top/cover no-repeat;
+  position:relative;
+}
+.game{width:min(100%,460px);margin:auto;position:relative}
+
+/* شريط الرأس */
+.top-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:4px 2px 10px;
+  direction:ltr;
+}
+.top-icons{display:flex;gap:14px;font-size:22px;color:#fff;opacity:0.9}
+.balance-badge{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(0,24,20,0.88);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:24px;
+  padding:5px 14px;
+  font-size:14px;
+  direction:rtl;
+  box-shadow:0 4px 14px rgba(0,0,0,0.5);
+}
+.balance-badge strong{direction:ltr;color:#fff;font-size:16px}
+.btn-plus{
+  width:26px;
+  height:26px;
+  border-radius:8px;
+  background:#34b967;
+  display:grid;
+  place-items:center;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.title-tag{
+  text-align:center;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:1px;
+  direction:ltr;
+  margin-bottom:12px;
+  color:#a5f0d3;
+  text-shadow:0 2px 6px #000;
+}
+
+/* شبكة اللعبة ومحاذاة LTR الدقيقة */
+.board-wrapper{position:relative}
+.board-grid{
+  display:grid;
+  direction:ltr!important;
+  grid-template-columns:52px repeat(5, minmax(0,1fr));
+  gap:6px 5px;
+  align-items:center;
+}
+
+.mult-tag{
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:rgba(0,35,28,0.75);
+  color:#8ec9b0;
+  font-size:11px;
+  font-weight:bold;
+  direction:ltr!important;
+  border:1px solid rgba(135,255,193,0.12);
+}
+.mult-tag.active{
+  background:linear-gradient(135deg,#34b967,#138840);
+  color:#fff;
+  border-color:#7eff9a;
+  box-shadow:0 0 12px rgba(52,185,103,0.7);
+}
+
+.apple-cell{
+  width:100%;
+  aspect-ratio:1;
+  border:0!important;
+  border-radius:50%!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  padding:0!important;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:transform .12s;
+}
+.apple-cell img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%;
+  display:block;
+  pointer-events:none;
+}
+.apple-cell:disabled{cursor:default}
+.apple-cell:not(:disabled):active{transform:scale(0.92)}
+.apple-cell.script-hint img{
+  filter:drop-shadow(0 0 8px #ffd000) drop-shadow(0 0 16px #ff9900)!important;
+  transform:scale(1.08);
+  animation:glowPulse 0.9s infinite alternate;
+}
+@keyframes glowPulse{
+  0%{transform:scale(1.02)}
+  100%{transform:scale(1.1)}
+}
+
+/* طبقة النتيجة المتطابقة مع الأصل (شفافة والشبكة واضحة خلفها) */
+.result-banner{
+  position:absolute;
+  inset:0;
+  z-index:40;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  text-align:center;
+}
+.banner-content{
+  pointer-events:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.banner-title{
+  font-size:28px;
+  font-weight:900;
+  color:#fff;
+  text-shadow:0 3px 10px rgba(0,0,0,0.9);
+  margin-bottom:4px;
+}
+.banner-sub{
+  font-size:14px;
+  font-weight:bold;
+  color:#e4ffed;
+  text-shadow:0 2px 6px rgba(0,0,0,0.9);
+  margin-bottom:2px;
+}
+.banner-val{
+  font-size:20px;
+  font-weight:bold;
+  color:#ffd24c;
+  direction:ltr;
+  text-shadow:0 2px 8px rgba(0,0,0,0.9);
+  margin-bottom:16px;
+}
+.banner-btn{
+  background:linear-gradient(180deg,#3ea2e6,#1c68a6);
+  border:1px solid rgba(255,255,255,0.4);
+  color:#fff;
+  border-radius:24px;
+  padding:12px 28px;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,0.6);
+}
+
+/* شريط الحالة والتحكم */
+.status-text{
+  min-height:36px;
+  margin:10px 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:13.5px;
+  font-weight:bold;
+  color:#d7fbe8;
+  text-shadow:0 2px 4px #000;
+}
+.control-panel{
+  background:rgba(0,32,26,0.72);
+  border:1px solid rgba(158,255,226,0.2);
+  border-radius:18px;
+  padding:10px 12px;
+  backdrop-filter:blur(8px);
+}
+.quick-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-bottom:8px;
+}
+.quick-grid button{
+  border:1px solid rgba(130,201,255,0.35);
+  background:linear-gradient(180deg,#4292cb,#2268a2);
+  color:#fff;
+  border-radius:10px;
+  padding:8px 0;
+  font-size:13px;
+  font-weight:bold;
+  cursor:pointer;
+}
+.bet-box{
+  display:flex;
+  gap:8px;
+  direction:ltr;
+  align-items:center;
+}
+#betInput{
+  flex:1;
+  background:rgba(0,18,28,0.85);
+  border:1px solid rgba(145,198,221,0.35);
+  border-radius:10px;
+  color:#fff;
+  height:48px;
+  text-align:center;
+  font-size:20px;
+  font-weight:bold;
+  outline:none;
+}
+.play-btn{
+  min-width:120px;
+  height:48px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.3);
+  background:linear-gradient(180deg,#4ea5e4,#216da8);
+  color:#fff;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+.play-btn.cash{
+  background:linear-gradient(180deg,#f3c64c,#d4891a);
+  color:#3a2003;
+  border-color:#ffe28a;
+}
+.limits-txt{
+  text-align:center;
+  color:#9ab5a7;
+  font-size:11px;
+  margin-top:6px;
+}
+
+/* سكريبت ايمكس */
+.script-fab{
+  position:fixed;
+  top:12px;
+  left:12px;
+  background:#6b17c7;
+  color:#fff;
+  border:1.5px solid #c78dff;
+  border-radius:20px;
+  padding:6px 14px;
+  font-size:12px;
+  font-weight:bold;
+  cursor:pointer;
+  z-index:99;
+  box-shadow:0 0 12px rgba(107,23,199,0.7);
+}
+.script-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(6px);
+  z-index:100;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+}
+.script-card{
+  width:100%;
+  max-width:340px;
+  background:#0c041c;
+  border:2px solid #6b17c7;
+  border-radius:22px;
+  padding:16px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.script-close{
+  position:absolute;
+  top:10px;
+  left:12px;
+  background:#260844;
+  border:1px solid #7c24dc;
+  color:#fff;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  cursor:pointer;
+}
+.script-title{font-size:20px;font-weight:bold;color:#e4b3ff;margin-bottom:12px}
+.script-login{width:100%}
+.script-input{
+  width:100%;
+  height:40px;
+  background:#14082c;
+  border:1.5px solid #5a1ca3;
+  border-radius:10px;
+  color:#fff;
+  text-align:center;
+  margin-bottom:8px;
+  outline:none;
+}
+.script-btn{
+  width:100%;
+  height:40px;
+  background:#6b17c7;
+  border:none;
+  border-radius:10px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+.script-content{display:none;width:100%;flex-direction:column;gap:8px}
+.script-board{
+  background:#06010f;
+  border:1.5px solid #4a1387;
+  border-radius:14px;
+  padding:8px 6px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.script-row{display:flex;justify-content:center;gap:6px;direction:ltr!important}
+.token{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  background:#43200b;
+  border:1px solid #6a3413;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+}
+.token.g{background:radial-gradient(circle at 35% 35%,#5ff5b4,#00874e);border-color:#33d691}
+.token.r{background:radial-gradient(circle at 35% 35%,#ff8da6,#b01a3c);border-color:#ff4d6d}
+.script-actions{display:flex;gap:8px;margin-top:6px}
+.script-actions button{flex:1;height:36px;background:#170630;border:1px solid #6b17c7;border-radius:8px;color:#fff;font-weight:bold;cursor:pointer}
+</style>
+</head>
+<body>
+
+<button class="script-fab" onclick="toggleScript(true)">⚡ اسكربت ايمكس</button>
+
+<div class="script-overlay" id="scriptOverlay">
+  <div class="script-card">
+    <button class="script-close" onclick="toggleScript(false)">✕</button>
+    <div class="script-title">اسكربت ايمكس</div>
+
+    <div class="script-login" id="scLogin">
+      <input type="text" id="scId" class="script-input" placeholder="أدخل ID الحساب">
+      <input type="password" id="scPass" class="script-input" placeholder="كلمة السر">
+      <button class="script-btn" onclick="authScript()">دخول</button>
+      <div id="scErr" style="color:#ff6b81;font-size:11px;text-align:center;margin-top:6px"></div>
+    </div>
+
+    <div class="script-content" id="scContent">
+      <div style="font-size:11px;color:#caa4f7;display:flex;justify-content:space-between;direction:ltr">
+        <span id="scIdLabel">ID: </span>
+        <span>Online: 243</span>
+      </div>
+      <div class="script-board" id="scBoard"></div>
+      <div class="script-actions">
+        <button id="scStartBtn" onclick="runScriptAnalysis()">START</button>
+        <button onclick="resetScriptBoard()">RESET</button>
+      </div>
+      <div id="scStatus" style="font-size:10px;color:#9b8bb3;text-align:center;min-height:16px">جاهز للتحليل</div>
+    </div>
+  </div>
+</div>
+
+<main class="game">
+  <div class="top-bar">
+    <div class="top-icons"><span>ⓘ</span><span>✹</span></div>
+    <div class="balance-badge">
+      <span class="btn-plus" onclick="addBalance()">+</span>
+      <strong id="balanceTxt">1,000.00</strong> ج.م
+    </div>
+    <div class="top-icons"><span>›</span></div>
+  </div>
+
+  <div class="title-tag">APPLE OF FORTUNE</div>
+
+  <section class="board-wrapper">
+    <div class="board-grid" id="boardGrid"></div>
+
+    <!-- نافذة النتيجة الشفافة في المنتصف -->
+    <div class="result-banner" id="resultBanner">
+      <div class="banner-content">
+        <div class="banner-title" id="bannerTitle">الفوز!</div>
+        <div class="banner-sub" id="bannerSub">أرباحك:</div>
+        <div class="banner-val" id="bannerVal">40.2 ج.م</div>
+        <button class="banner-btn" id="bannerBtn" onclick="newGame()">العب مرة أخرى ؟ (10 ج.م)</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="status-text" id="statusText">اختار مبلغ الرهان واضغط «الرهان» لبدء اللعب</div>
+
+  <section class="control-panel">
+    <div class="quick-grid">
+      <button onclick="setBetQuick('max')">أقصى</button>
+      <button onclick="setBetQuick('half')">× ½</button>
+      <button onclick="setBetQuick('double')">× 2</button>
+      <button onclick="setBetQuick('min')">أدنى</button>
+    </div>
+    <div class="bet-box">
+      <button class="play-btn" id="playBtn" onclick="handlePlayAction()">الرهان</button>
+      <input id="betInput" type="number" min="10" max="72117.63" step="0.01" value="20">
+    </div>
+    <div class="limits-txt">أدنى 10 ج.م — أقصى 72,117.63 ج.م</div>
+  </section>
+</main>
+
+<script>
+const ROWS=10, COLS=5, MIN_BET=10, MAX_BET=72117.63;
+const MULT=[1.23, 1.54, 1.93, 2.41, 4.02, 6.71, 11.18, 27.97, 69.93, 349.68];
+let balance=1000, bet=20, isPlaying=false, curRow=9, steps=0;
+let safeMap=[], pickedMap=[], isRoundOver=false;
+
+const boardGrid = document.getElementById('boardGrid');
+const resultBanner = document.getElementById('resultBanner');
+
+// دالة ذكية لإرجاع كود الصورة مع فحص البدائل لضمان عدم ظهور أيقونة مكسورة نهائياً
+function assetImg(primary, fallback, style=""){
+  return `<img src="${primary}" onerror="this.onerror=null;this.src='${fallback}';" alt="" style="${style}">`;
+}
+
+const ASSETS = {
+  woodDark: assetImg('wood-dark.png.png', 'wood-dark.png'),
+  woodDim: assetImg('Picsart_26-10-30_11-29-15-358.png', 'wood-dim.png', 'opacity:0.65;'),
+  mushroom: assetImg('mushroom.png.png', 'mushroom.png'),
+  safe: assetImg('apple-safe.png.png', 'apple-safe.png'),
+  bad: assetImg('apple-bad.png.png', 'apple-bad.png')
+};
+
+function initRound(){
+  const safeCounts=[1,2,2,3,3,3,4,4,4,4]; // من الصف العلوي 0 إلى السفلي 9
+  safeMap = safeCounts.map(count => {
+    const cols = [0,1,2,3,4];
+    for(let i=cols.length-1; i>0; i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [cols[i], cols[j]] = [cols[j], cols[i]];
+    }
+    return new Set(cols.slice(0, count));
+  });
+  pickedMap = Array(ROWS).fill(null);
+  curRow = ROWS-1;
+  steps = 0;
+  isPlaying = false;
+  isRoundOver = false;
+  resultBanner.style.display = 'none';
+  renderBoard();
+  syncUI();
+}
+
+function renderBoard(){
+  boardGrid.innerHTML = '';
+  for(let r=0; r<ROWS; r++){
+    const multDiv = document.createElement('div');
+    multDiv.className = 'mult-tag' + (isPlaying && r===curRow ? ' active' : '');
+    multDiv.textContent = '×' + MULT[ROWS-1-r].toFixed(2);
+    boardGrid.appendChild(multDiv);
+
+    for(let c=0; c<COLS; c++){
+      const btn = document.createElement('button');
+      btn.className = 'apple-cell';
+      btn.id = `cell-${r}-${c}`;
+
+      let sprite = 'woodDark';
+
+      if(isRoundOver){
+        // كشف كامل الشبكة فور انتهاء الجولة
+        sprite = safeMap[r].has(c) ? 'safe' : 'bad';
+      } else if(r > curRow){
+        // الصفوف السابقة: الخلية التي تم اختيارها تظهر سليمة أو خطرة، والباقي خشب باهت
+        sprite = (c === pickedMap[r]) ? (safeMap[r].has(c) ? 'safe' : 'bad') : 'woodDim';
+      } else if(isPlaying && r === curRow){
+        sprite = 'mushroom';
+      } else if(!isPlaying && r === ROWS-1){
+        sprite = 'mushroom';
+      } else {
+        sprite = 'woodDark';
+      }
+
+      btn.innerHTML = ASSETS[sprite];
+      btn.disabled = !isPlaying || r !== curRow || pickedMap[r] !== null || isRoundOver;
+      btn.onclick = () => selectApple(r, c);
+      boardGrid.appendChild(btn);
+    }
+  }
+}
+
+function handlePlayAction(){
+  if(isPlaying){
+    cashOut();
+    return;
+  }
+  bet = Number(document.getElementById('betInput').value);
+  if(!bet || bet < MIN_BET || bet > MAX_BET || bet > balance){
+    updateStatus('تأكد من الرصيد والرهان المتاح');
+    return;
+  }
+  balance -= bet;
+  isPlaying = true;
+  curRow = ROWS-1;
+  steps = 0;
+  isRoundOver = false;
+  resultBanner.style.display = 'none';
+  updateStatus('اختار تفاحة واحدة من الصف المضيء');
+  renderBoard();
+  syncUI();
+}
+
+function selectApple(r, c){
+  if(!isPlaying || r !== curRow) return;
+  pickedMap[r] = c;
+
+  if(safeMap[r].has(c)){
+    steps++;
+    if(steps === ROWS){
+      const winVal = bet * MULT[ROWS-1];
+      balance += winVal;
+      endGame(true, winVal);
+      return;
+    }
+    curRow--;
+    renderBoard();
+    syncUI();
+    updateStatus('✅ التفاحة سليمة! اختار من الصف التالي');
+  } else {
+    endGame(false, 0);
+  }
+}
+
+function cashOut(){
+  if(steps === 0) return;
+  const winVal = bet * MULT[steps-1];
+  balance += winVal;
+  endGame(true, winVal);
+}
+
+function endGame(isWin, prize){
+  isPlaying = false;
+  isRoundOver = true;
+  renderBoard();
+  syncUI();
+
+  if(isWin){
+    document.getElementById('bannerTitle').textContent = 'الفوز!';
+    document.getElementById('bannerSub').textContent = 'أرباحك:';
+    document.getElementById('bannerVal').textContent = prize.toFixed(2) + ' ج.م';
+    updateStatus(`🏆 مبروك! ربحت ${prize.toFixed(2)} ج.م`);
+  } else {
+    document.getElementById('bannerTitle').textContent = 'خسرت!';
+    document.getElementById('bannerSub').textContent = 'التفاحة كانت خطرة';
+    document.getElementById('bannerVal').textContent = 'ج.م 0.00';
+    updateStatus('❌ للأسف التفاحة خطرة! انتهت الجولة');
+  }
+
+  document.getElementById('bannerBtn').textContent = `العب مرة أخرى ؟ (${bet.toFixed(0)} ج.م)`;
+  resultBanner.style.display = 'flex';
+}
+
+function newGame(){
+  resultBanner.style.display = 'none';
+  initRound();
+}
+
+function syncUI(){
+  document.getElementById('balanceTxt').textContent = balance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const playBtn = document.getElementById('playBtn');
+  playBtn.textContent = isPlaying ? 'خذ الأرباح' : 'الرهان';
+  playBtn.classList.toggle('cash', isPlaying);
+  document.getElementById('betInput').disabled = isPlaying;
+}
+
+function updateStatus(msg){
+  document.getElementById('statusText').textContent = msg;
+}
+
+function setBetQuick(mode){
+  let v = Number(document.getElementById('betInput').value) || MIN_BET;
+  if(mode === 'min') v = MIN_BET;
+  if(mode === 'max') v = Math.min(MAX_BET, balance);
+  if(mode === 'half') v = Math.max(MIN_BET, v/2);
+  if(mode === 'double') v = Math.min(balance, MAX_BET, v*2);
+  document.getElementById('betInput').value = Math.min(balance, Math.max(MIN_BET, v)).toFixed(2);
+}
+
+function addBalance(){balance += 500; syncUI();}
+
+/* سكريبت ايمكس مع ربط مباشر ومؤقت تطابق */
+let scAnim = null;
+function toggleScript(show){document.getElementById('scriptOverlay').style.display = show ? 'flex' : 'none'}
+
+function authScript(){
+  const id = document.getElementById('scId').value.trim();
+  const pass = document.getElementById('scPass').value.trim().toLowerCase();
+  const err = document.getElementById('scErr');
+  if(!id){err.textContent = 'اكتب ID أولاً'; return;}
+  if(pass !== 'ايمكس' && pass !== 'imx' && pass !== 'emx'){err.textContent = 'كلمة السر غير صحيحة'; return;}
+  err.textContent = '';
+  document.getElementById('scLogin').style.display = 'none';
+  document.getElementById('scContent').style.display = 'flex';
+  document.getElementById('scIdLabel').textContent = 'ID: ' + id;
+  resetScriptBoard();
+}
+
+function buildScriptTokens(){
+  const container = document.getElementById('scBoard');
+  container.innerHTML = '';
+  for(let r=0; r<ROWS; r++){
+    const row = document.createElement('div');
+    row.className = 'script-row';
+    for(let c=0; c<COLS; c++){
+      const t = document.createElement('div');
+      t.id = `tk-${r}-${c}`;
+      t.className = 'token';
+      row.appendChild(t);
+    }
+    container.appendChild(row);
+  }
+}
+
+function resetScriptBoard(){
+  if(scAnim) clearInterval(scAnim);
+  buildScriptTokens();
+  document.getElementById('scStatus').textContent = 'جاهز للتحليل وربط التوقعات باللعبة';
+  document.getElementById('scStartBtn').disabled = false;
+  document.querySelectorAll('.apple-cell').forEach(c => c.classList.remove('script-hint'));
+}
+
+function runScriptAnalysis(){
+  if(!isPlaying){
+    document.getElementById('scStatus').textContent = '⚠️ اضغط على زر "الرهان" في اللعبة أولاً!';
+    return;
+  }
+  resetScriptBoard();
+  document.getElementById('scStartBtn').disabled = true;
+  document.getElementById('scStatus').textContent = 'جارِ التحليل وعرض التفاح الآمن...';
+
+  let rTarget = ROWS - 1;
+  scAnim = setInterval(() => {
+    if(rTarget < 0){
+      clearInterval(scAnim);
+      document.getElementById('scStatus').textContent = '⚡ تم كشف التفاحات وتطابقها تماماً مع شبكة اللعبة!';
+      document.getElementById('scStartBtn').disabled = false;
+      return;
+    }
+
+    for(let c=0; c<COLS; c++){
+      const tk = document.getElementById(`tk-${rTarget}-${c}`);
+      const isSafe = safeMap[rTarget].has(c);
+      if(tk){
+        tk.className = 'token ' + (isSafe ? 'g' : 'r');
+        tk.innerHTML = isSafe ? '🍏' : '🍎';
+      }
+      if(isSafe && rTarget === curRow){
+        const cell = document.getElementById(`cell-${rTarget}-${c}`);
+        if(cell) cell.classList.add('script-hint');
+      }
+    }
+    rTarget--;
+  }, 280);
+}
+
+initRound();
+</script>
+</body>
+</html>
